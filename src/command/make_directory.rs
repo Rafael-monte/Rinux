@@ -1,6 +1,5 @@
 pub mod internal {
     use std::path::Path;
-    use regex::Regex;
     use crate::command::traits::EssencialCommand;
 
     pub struct MakeDirectoryCommand {
