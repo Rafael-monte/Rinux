@@ -1,6 +1,6 @@
 pub mod internal {
     use std::path::Path;
-    use crate::command::traits::EssencialCommand;
+    use crate::command::traits::{EssencialCommand, FileManipulatorValidations};
 
     pub struct MakeDirectoryCommand {
         args: Vec<String>
@@ -13,9 +13,11 @@ pub mod internal {
             }
         }
     }
+
+    impl FileManipulatorValidations for MakeDirectoryCommand {}
     impl EssencialCommand for MakeDirectoryCommand {
         fn get_validators(&self) -> Vec<fn(&[&str]) -> bool> {
-            return vec![
+            let mut validators: Vec<fn(&[&str]) -> bool> = vec![
                 |args| {
                     const NO_ARGS: usize = 0;
                     if args.len() == NO_ARGS {
@@ -24,11 +26,19 @@ pub mod internal {
                     return args.len() == NO_ARGS;
                 },
                 |args| {
-                    let invalid_names= false;
-                    // TODO: Create a validator to check if the names bring by args are ok.
-                    return invalid_names;
+                    let mut exists = false;
+                    args.iter().for_each(|arg| {
+                        let mut path = Path::new(*arg);
+                        if path.exists() && path.is_dir() {
+                            eprintln!("The given name {} already exists", path.display());
+                            exists = true;
+                        }
+                    });
+                    return exists;
                 }
-            ]
+            ];
+            validators.extend(self.name_validations());
+            return validators;
         }
 
         fn get_name(&self) -> String {
@@ -40,17 +50,17 @@ pub mod internal {
         fn run(&self) -> () {
             let validators = self.get_validators();
             let slices: Vec<&str> = self.args.iter().map(|arg| arg.as_str()).collect();
-            if validators.iter().any(|validation| validation(&slices)) {
+            if validators.iter().any(|validation_triggered| validation_triggered(&slices)) {
                 return;
             }
             self.args.iter().for_each(|dir_name| {
-                let path = Path::new(dir_name);
                 if *dir_name != self.get_name() {
-                    if path.exists() && path.is_dir() {
-                        eprintln!("The package \"{}\" already exists", path.display());
+                    let package_created = std::fs::create_dir(dir_name);
+                    if package_created.is_err() {
+                        eprintln!("An error occoured when create package: {}", package_created.unwrap_err());
                         return;
                     }
-                    std::fs::create_dir(dir_name).unwrap()
+                    package_created.unwrap();
                 }
             })
         }
@@ -63,5 +73,20 @@ pub mod internal {
         fn creator(&self) -> String {
             return String::from("Rafael Monteiro Zancanaro");
         }
+    }
+}
+
+
+mod test {
+    use crate::command::make_directory::internal::MakeDirectoryCommand;
+    use crate::command::traits::EssencialCommand;
+
+    #[test]
+    fn create_new_package() {
+        let invalid_name="invalid paste";
+        let valid_name="valid_package";
+        let package_names = vec![invalid_name, valid_name];
+        let command = MakeDirectoryCommand::spawn(&package_names);
+        command.run();
     }
 }
