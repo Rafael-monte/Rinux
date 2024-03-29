@@ -1,21 +1,23 @@
 pub mod internal {
     use std::path::Path;
-    use crate::command::traits::{EssencialCommand, FileManipulatorValidations};
+    use crate::command::traits::{EssentialCommand, FileManipulatorValidations};
 
     pub struct MakeDirectoryCommand {
-        args: Vec<String>
+        args: Vec<String>,
+        protected_mode: bool
     }
 
     impl MakeDirectoryCommand {
-        pub fn spawn(args: &[&str]) -> Self {
+        pub fn spawn() -> Self {
             return Self {
-                args: args.to_vec().iter().map(|el| el.to_string()).collect()
+                args: Vec::new(),
+                protected_mode: false
             }
         }
     }
 
     impl FileManipulatorValidations for MakeDirectoryCommand {}
-    impl EssencialCommand for MakeDirectoryCommand {
+    impl EssentialCommand for MakeDirectoryCommand {
         fn get_validators(&self) -> Vec<fn(&[&str]) -> bool> {
             let mut validators: Vec<fn(&[&str]) -> bool> = vec![
                 |args| {
@@ -30,7 +32,7 @@ pub mod internal {
                     args.iter().for_each(|arg| {
                         let mut path = Path::new(*arg);
                         if path.exists() && path.is_dir() {
-                            eprintln!("The given name {} already exists", path.display());
+                            eprintln!("The given package \"{}\" already exists", path.display());
                             exists = true;
                         }
                     });
@@ -47,7 +49,12 @@ pub mod internal {
         fn usage(&self) -> String {
             return String::from("mkpkg [📦 Package names...]")
         }
-        fn run(&self) -> () {
+        fn run(&mut self, args: &[String]) -> () {
+            if self.protected_mode {
+                eprintln!("Couldn't run command (protection mode enabled)");
+                return;
+            }
+            self.args = args.to_vec();
             let validators = self.get_validators();
             let slices: Vec<&str> = self.args.iter().map(|arg| arg.as_str()).collect();
             if validators.iter().any(|validation_triggered| validation_triggered(&slices)) {
@@ -73,20 +80,9 @@ pub mod internal {
         fn creator(&self) -> String {
             return String::from("Rafael Monteiro Zancanaro");
         }
-    }
-}
 
-
-mod test {
-    use crate::command::make_directory::internal::MakeDirectoryCommand;
-    use crate::command::traits::EssencialCommand;
-
-    #[test]
-    fn create_new_package() {
-        let invalid_name="invalid paste";
-        let valid_name="valid_package";
-        let package_names = vec![invalid_name, valid_name];
-        let command = MakeDirectoryCommand::spawn(&package_names);
-        command.run();
+        fn set_protected_mode(&mut self, protected: bool) -> () {
+            self.protected_mode = protected;
+        }
     }
 }

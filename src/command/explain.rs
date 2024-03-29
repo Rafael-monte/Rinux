@@ -1,24 +1,25 @@
 pub mod internal {
-    use std::collections::HashMap;
-    use crate::command::traits::EssencialCommand;
+    use crate::command::traits::{EssentialCommand};
+    use crate::core::Kernel;
 
     pub struct ExplainCommand {
-        args: Vec<String>
+        args: Vec<String>,
+        protected_mode: bool
     }
 
     impl ExplainCommand {
-        pub fn spawn(args: &[&str]) -> Self {
-            let as_string: Vec<String> = args.iter().map(|el| el.to_string()).collect();
+        pub fn spawn() -> Self {
             return Self {
-                args: as_string
+                args: Vec::new(),
+                protected_mode: false
             }
         }
-        fn get_other_commands(&self) -> HashMap<String, Box<dyn EssencialCommand>>  {
-            return crate::command::generate_commands(&vec![]);
+        fn get_command(&self, module_name: &str) -> Option<Box<dyn EssentialCommand>>  {
+            return Kernel::get_module_in_protected_mode(module_name)
         }
     }
 
-    impl EssencialCommand for ExplainCommand {
+    impl EssentialCommand for ExplainCommand {
         fn get_validators(&self) -> Vec<fn(&[&str]) -> bool> {
             return vec![
                 |args| {
@@ -39,21 +40,27 @@ pub mod internal {
             return String::from("explain [📝COMMAND]");
         }
 
-        fn run(&self) -> () {
-            let commands = self.get_other_commands();
+        fn run(&mut self, args: &[String]) -> () {
+            if self.protected_mode {
+                eprintln!("Couldn't run command (protection mode enabled)");
+                return;
+            }
+            self.args = args.to_vec();
             let slices: Vec<&str> = self.args.iter().map(|arg| arg.as_str()).collect();
             let validators = self.get_validators();
             if validators.iter().any(|validation| validation(&slices)) {
                 return;
             }
             let command_name = slices.first().unwrap();
-            if !commands.contains_key(*command_name) {
-                eprintln!("Couldn't find the command {}", command_name);
+            let opt_command = self.get_command(*command_name);
+            if opt_command.is_none() {
+                eprintln!("Couldn't find the command \"{}\"", command_name);
                 return;
             }
+            let command = opt_command.unwrap();
             println!();
             println!("-----------------------------------------------");
-            commands[*command_name].description();
+            command.description();
             println!("-----------------------------------------------");
             println!();
         }
@@ -68,6 +75,10 @@ pub mod internal {
 
         fn creator(&self) -> String {
             return String::from("Rafael Monteiro Zancanaro");
+        }
+
+        fn set_protected_mode(&mut self, protected: bool) -> () {
+            self.protected_mode = protected;
         }
     }
 }
