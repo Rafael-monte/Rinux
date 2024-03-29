@@ -6,7 +6,7 @@ pub trait SyscallInvoker {
     fn to_shell_command(&self) -> String;
 }
 
-pub trait EssencialCommand {
+pub trait EssentialCommand {
     fn get_validators(&self) -> Vec<fn(&[&str]) -> bool>;
     fn description(&self) -> () {
         // Template method
@@ -22,10 +22,11 @@ pub trait EssencialCommand {
     }
     fn get_name(&self) -> String;
     fn usage(&self) -> String;
-    fn run(&self) -> ();
+    fn run(&mut self, args: &[String]) -> ();
     fn get_full_name(&self) -> String;
     fn is_internal(&self) -> bool;
     fn creator(&self) -> String;
+    fn set_protected_mode(&mut self, protected:bool) -> ();
 }
 
 pub trait FileManipulatorValidations {
@@ -41,22 +42,5 @@ pub trait FileManipulatorValidations {
                 return false;
             }
         ]
-    }
-
-}
-
-mod test {
-    use regex::Regex;
-
-    #[test]
-    pub fn name_validations() {
-        let file_and_directory_patterns = Regex::new(r#"^[a-zA-Z0-9._-]+$"#)
-            .unwrap();
-        let invalid_name="invalid paste";
-        let valid_name="valid_package";
-        let package_names = vec![invalid_name, valid_name];
-        let filter: Vec<_>= package_names.iter().filter(|p| !file_and_directory_patterns.is_match(**p)).collect();
-        println!("\"{}\" name is invalid...", filter.first().unwrap());
-        assert!(!filter.is_empty());
     }
 }

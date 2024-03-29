@@ -1,17 +1,11 @@
-use std::io;
+use crate::core::Kernel;
+
 mod command;
+mod core;
+mod ui;
 
 fn main() {
-    let exit_command = String::from("exit");
-    let mut current_line: String = String::new();
-    loop {
-        io::stdin().read_line(&mut current_line)
-            .expect("Occoured an error while reading the input line");
-        current_line = current_line.replace("\n", "");
-        if current_line == exit_command {
-            break;
-        }
-        command::handle_command(&current_line);
-        current_line = String::new();
-    }
+    let mut kernel = Kernel::bootloader();
+    let mut ui = kernel.ui;
+    ui.watch_commands();
 }
