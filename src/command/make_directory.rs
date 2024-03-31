@@ -49,17 +49,12 @@ pub mod internal {
         fn usage(&self) -> String {
             return String::from("mkpkg [📦 Package names...]")
         }
-        fn run(&mut self, args: &[String]) -> () {
+        fn run(&mut self, args: &[&str]) -> () {
             if self.protected_mode {
                 eprintln!("Couldn't run command (protection mode enabled)");
                 return;
             }
-            self.args = args.to_vec();
-            let validators = self.get_validators();
-            let slices: Vec<&str> = self.args.iter().map(|arg| arg.as_str()).collect();
-            if validators.iter().any(|validation_triggered| validation_triggered(&slices)) {
-                return;
-            }
+            self.args = args.iter().map(|arg| String::from(*arg)).collect();
             self.args.iter().for_each(|dir_name| {
                 if *dir_name != self.get_name() {
                     let package_created = std::fs::create_dir(dir_name);
@@ -80,9 +75,11 @@ pub mod internal {
         fn creator(&self) -> String {
             return String::from("Rafael Monteiro Zancanaro");
         }
-
         fn set_protected_mode(&mut self, protected: bool) -> () {
             self.protected_mode = protected;
+        }
+        fn get_protected_mode(&self) -> bool {
+            return self.protected_mode;
         }
     }
 }

@@ -41,7 +41,11 @@ impl PresentationLayer {
             }
             let (command, args) = self.process_tokens(&current_line);
             self.history.push(current_line);
-            self.commands.get_mut(&command).unwrap().run(&args);
+            if let Some(comm) = self.commands.get_mut(&command) {
+                comm.check_and_run(&args);
+            } else {
+                eprintln!("Command \"{}\" not found.", command);
+            }
             current_line = String::new();
         }
     }
