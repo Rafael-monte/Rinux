@@ -20,13 +20,27 @@ pub trait EssentialCommand {
         println!("-----------------------------------------------");
         println!("🧑‍💻 Created by: {}", self.creator());
     }
+
+    fn check_and_run(&mut self, args: &[String]) {
+        let validators = self.get_validators();
+        let words: Vec<&str> = args.iter().map(|arg| arg.as_str()).collect();
+        if validators.iter().any(|invalid| invalid(&words)) {
+            return;
+        }
+        if self.get_protected_mode() {
+            eprintln!("Cannot run \"{}\" (Protection mode enabled)", self.get_name());
+            return;
+        }
+        self.run(&words);
+    }
     fn get_name(&self) -> String;
     fn usage(&self) -> String;
-    fn run(&mut self, args: &[String]) -> ();
+    fn run(&mut self, args: &[&str]) -> ();
     fn get_full_name(&self) -> String;
     fn is_internal(&self) -> bool;
     fn creator(&self) -> String;
     fn set_protected_mode(&mut self, protected:bool) -> ();
+    fn get_protected_mode(&self) -> bool;
 }
 
 pub trait FileManipulatorValidations {

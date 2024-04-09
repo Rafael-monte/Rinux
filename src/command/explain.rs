@@ -40,18 +40,13 @@ pub mod internal {
             return String::from("explain [📝COMMAND]");
         }
 
-        fn run(&mut self, args: &[String]) -> () {
+        fn run(&mut self, args: &[&str]) -> () {
             if self.protected_mode {
                 eprintln!("Couldn't run command (protection mode enabled)");
                 return;
             }
-            self.args = args.to_vec();
-            let slices: Vec<&str> = self.args.iter().map(|arg| arg.as_str()).collect();
-            let validators = self.get_validators();
-            if validators.iter().any(|validation| validation(&slices)) {
-                return;
-            }
-            let command_name = slices.first().unwrap();
+            self.args = args.iter().map(|arg| String::from(*arg)).collect();
+            let command_name = args.first().unwrap();
             let opt_command = self.get_command(*command_name);
             if opt_command.is_none() {
                 eprintln!("Couldn't find the command \"{}\"", command_name);
@@ -79,6 +74,10 @@ pub mod internal {
 
         fn set_protected_mode(&mut self, protected: bool) -> () {
             self.protected_mode = protected;
+        }
+
+        fn get_protected_mode(&self) -> bool {
+            return self.protected_mode;
         }
     }
 }

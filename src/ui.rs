@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::io;
+use chrono::Local;
 use crate::command::traits::EssentialCommand;
 use crate::core::InternalCommand;
 
 pub struct PresentationLayer {
-    history: Vec<String>,
+    pub history: Vec<String>,
     commands: InternalCommand
 }
 
@@ -20,13 +21,25 @@ impl PresentationLayer {
         };
     }
 
-    fn restore_history(&mut self) -> () {
-        //TODO read a text file with the history
+    fn add_to_history(&mut self, command: &str, args: &[String]) -> () {
+        const COMMA: &str = ",";
+        let mut args_formatted = args.to_vec().join(COMMA);
+        if args.to_vec().is_empty() || args.to_vec().iter().all(|entry| entry.is_empty()) {
+            args_formatted = String::from("Empty");
+        }
+        let moment = Local::now();
+        let entry = format!("Command: {}. Args=[{}] (at {})", command, args_formatted.as_str(), moment);
+        println!("Entry: {}", entry);
+        self.history.push(entry);
     }
 
     fn process_tokens(&self, input: &str) -> (String, Vec<String>) {
         let tokens: Vec<String> = input.split(" ").map(|el| el.to_string()).collect();
-        return (tokens[0].to_string(), tokens[1..].to_vec());
+        let args: Vec<String> = tokens[1..].iter()
+            .filter(|el| !el.is_empty())
+            .map(|el| String::from(el.as_str()))
+            .collect();
+        return (tokens[0].to_string(), args);
     }
 
     pub fn watch_commands(&mut self) -> () {
@@ -39,9 +52,17 @@ impl PresentationLayer {
             if current_line == exit_command {
                 break;
             }
+            if current_line.is_empty() {
+                current_line = String::new();
+                continue;
+            }
             let (command, args) = self.process_tokens(&current_line);
-            self.history.push(current_line);
-            self.commands.get_mut(&command).unwrap().run(&args);
+            self.add_to_history(&command, &args);
+            if let Some(comm) = self.commands.get_mut(&command) {
+                comm.check_and_run(&args);
+            } else {
+                eprintln!("Command \"{}\" not found.", command);
+            }
             current_line = String::new();
         }
     }

@@ -6,6 +6,5 @@ mod ui;
 
 fn main() {
     let mut kernel = Kernel::bootloader();
-    let mut ui = kernel.ui;
-    ui.watch_commands();
+    kernel.run();
 }
